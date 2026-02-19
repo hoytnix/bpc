@@ -21,7 +21,7 @@ const App: React.FC = () => {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  const isAdminRoute = location.pathname === '/admin';
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   if (menuOpen) {
     return (
