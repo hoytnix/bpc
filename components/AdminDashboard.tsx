@@ -102,7 +102,16 @@ const AdminDashboard: React.FC = () => {
   const callEdgeFunction = async (action: 'create' | 'update' | 'delete', payload: any = {}, id?: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     
-    console.log(`[Edge Function] Calling ${action} on ${activeTab}...`, { payload, id });
+    if (!session) {
+      console.error('[Edge Function] No session found');
+      throw new Error('Authentication session expired. Please log in again.');
+    }
+
+    console.log(`[Edge Function] Calling ${action} on ${activeTab}...`, { 
+      payload, 
+      id,
+      hasToken: !!session.access_token 
+    });
 
     const { data, error } = await supabase.functions.invoke('manage-content', {
       headers: {
@@ -126,14 +135,20 @@ const AdminDashboard: React.FC = () => {
       let errorMessage = `Function Error: ${error.message}`;
       
       // Try to extract more details if it's an HTTP error
-      if ('context' in error) {
-        console.error('Context:', (error as any).context);
+      if (error instanceof Error && 'context' in error) {
+        const response = (error as any).context;
+        if (response instanceof Response) {
+          try {
+            const body = await response.clone().text();
+            console.error('Raw Response Body:', body);
+            errorMessage += ` | Body: ${body}`;
+          } catch (e) {
+            console.error('Could not read response body', e);
+          }
+        }
       }
 
-      // If the function returned a specific JSON error body, it might be in the error message itself
-      // or we might have received data despite the error (unlikely with invoke)
       console.groupEnd();
-
       throw new Error(errorMessage);
     }
 
