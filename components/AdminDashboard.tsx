@@ -102,6 +102,8 @@ const AdminDashboard: React.FC = () => {
   const callEdgeFunction = async (action: 'create' | 'update' | 'delete', payload: any = {}, id?: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     
+    console.log(`[Edge Function] Calling ${action} on ${activeTab}...`, { payload, id });
+
     const { data, error } = await supabase.functions.invoke('manage-content', {
       headers: {
         'Authorization': `Bearer ${session?.access_token}`,
@@ -116,10 +118,26 @@ const AdminDashboard: React.FC = () => {
     });
 
     if (error) {
-      console.error('Edge Function Error:', error);
-      throw new Error(error.message || 'Failed to execute action');
+      console.group('--- Edge Function Invocation Failed ---');
+      console.error('Error Object:', error);
+      console.error('Action:', action);
+      console.error('Table:', activeTab);
+      
+      let errorMessage = `Function Error: ${error.message}`;
+      
+      // Try to extract more details if it's an HTTP error
+      if ('context' in error) {
+        console.error('Context:', (error as any).context);
+      }
+
+      // If the function returned a specific JSON error body, it might be in the error message itself
+      // or we might have received data despite the error (unlikely with invoke)
+      console.groupEnd();
+
+      throw new Error(errorMessage);
     }
 
+    console.log(`[Edge Function] ${action} success:`, data);
     return data;
   };
 

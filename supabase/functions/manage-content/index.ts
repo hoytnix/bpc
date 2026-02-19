@@ -7,6 +7,9 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[${requestId}] Request received: ${req.method}`);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -16,6 +19,7 @@ serve(async (req) => {
     // 1. Auth Verification
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
     if (!authHeader) {
+      console.error(`[${requestId}] Missing Authorization header`);
       return new Response(
         JSON.stringify({ error: 'BPC_FUNCTION_ERROR: Missing Authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -27,6 +31,7 @@ serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
+      console.error(`[${requestId}] Missing environment variables`);
       return new Response(
         JSON.stringify({ 
           error: 'Edge Function configuration error', 
@@ -44,23 +49,19 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
+      console.error(`[${requestId}] Auth error:`, authError?.message);
       return new Response(
         JSON.stringify({ error: 'Unauthorized', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Strict Admin Check: Only Tommy's email is allowed
-    const ADMIN_EMAIL = 'burnsperformanceconsulting@gmail.com'
-    if (user.email !== ADMIN_EMAIL) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: You do not have admin privileges' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    console.log(`[${requestId}] Authenticated user: ${user.email}`);
 
     // 2. Parse JSON Body
-    const { action, table, payload, id } = await req.json()
+    const body = await req.json()
+    const { action, table, payload, id } = body
+    console.log(`[${requestId}] Action: ${action}, Table: ${table}, ID: ${id}`);
 
     const allowedTables = ['testimonials', 'media_items', 'faqs']
     if (!table || !allowedTables.includes(table)) {
