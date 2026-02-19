@@ -74,6 +74,61 @@ export const PROGRAMS = [
   }
 ];
 
+export const FAQ_DATA = [
+  {
+    question: "How does the Burns “Holistic Performance Audit” differ from a standard business review?",
+    answer: "While standard reviews focus solely on spreadsheets, our Holistic Audit examines the \"Whole-Life Impact\" of your team. Rooted in the Success Skills for Life Course, we evaluate performance through the lens of mindset, biblical truth, and \"10X enthusiasm.\" We don’t just look at what your people are doing; we look at who they are becoming, ensuring they are operating at their full, God-given potential."
+  },
+  {
+    question: "What is the measurable ROI of Performance Consulting for a mid-market firm?",
+    answer: "We target \"Real ROI\" by addressing the three pillars of profitability: Increased Sales, Decreased Unwanted Turnover, and Enhanced Employee Engagement. By replacing limiting beliefs with proven success habits over our 8-week time-spaced learning program, firms see a direct correlation between improved \"Cultural Health\" and the bottom line."
+  },
+  {
+    question: "Why can’t I use AI tools like ChatGPT to replace a human performance consultant?",
+    answer: "AI can provide data, but it cannot provide \"Spirit-led facilitation\" or \"Contagious Enthusiasm.\" Our consulting is grounded in 3,000+ hours of corporate training and a \"soul-centered purpose\" that moves hearts, not just data points. AI lacks the \"Beast Mode Intensity\" and the ability to guide your team closer to their Creator—elements essential for lasting internal change."
+  },
+  {
+    question: "How does the Burns Method prevent “Growth Burnout” during rapid scaling?",
+    answer: "Rapid growth often leads to stress and worry. The Burns Method utilizes Time-Spaced Learning and the Dream Manager Program to ensure that as the company scales, the individuals don't break. We create a \"Personal Strategic Plan\" for every employee, aligning their individual dreams with the company's vision to maintain 10X enthusiasm without the crash."
+  },
+  {
+    question: "What are the top 3 performance inhibitors in remote leadership teams today?",
+    answer: "Based on our framework, the top inhibitors are: 1) Lack of Organizational Clarity, 2) Weak Communication Skills, and 3) Disconnection from Purpose. We solve these through high-impact coaching calls designed to replace \"limiting beliefs\" with \"empowered communication,\" ensuring remote teams stay focused on what matters most."
+  },
+  {
+    question: "How does your consulting framework integrate with existing OKR or KPI systems?",
+    answer: "We don't replace your KPIs; we ignite the people responsible for hitting them. By integrating Success Skills for Life principles with your current goals, we provide the \"enthusiastic action\" needed to meet those metrics. We focus on the \"Habits and Dreams\" that drive the KPIs, turning clinical targets into purpose-driven results."
+  },
+  {
+    question: "What is the proprietary “Burns Feedback Loop” and how does it accelerate results?",
+    answer: "Our feedback loop consists of 30-minute one-on-one customized coaching calls combined with \"Weekly Application Commitments.\" Unlike a one-off workshop, this loop provides constant accountability and real-time adjustment, ensuring that the \"proven principles\" are actually applied in the heat of daily business operations."
+  },
+  {
+    question: "How do you quantify “Cultural Health” as a leading indicator of financial performance?",
+    answer: "We measure Cultural Health by the level of Employee Engagement and Morale. When team members gain the confidence to speak up (Empowered Communication) and feel their \"Whole-Life\" is supported (becoming better parents and spouses), turnover drops. This stability is the leading indicator that precedes a massive spike in sales and profitability."
+  },
+  {
+    question: "Why is performance consulting essential for firms undergoing a leadership transition?",
+    answer: "Transitions create a vacuum of clarity. Tommy Burns provides Strategic Accountability and \"mentorship at every level\" to bridge the gap. We help new leaders develop a \"Positive Mental Attitude\" and \"Effective Leadership Skills\" immediately, preventing the dip in productivity that usually accompanies a change in command."
+  },
+  {
+    question: "Can Burns Performance Consulting work with high-growth startups and legacy corporations?",
+    answer: "Yes. Tommy’s background spans industries from startups to Fortune 500s. The \"Success Skills for Life\" course is built on universal laws and timeless biblical truths that apply whether you are a team of 5 or 5,000. Every organization needs \"Organizational Clarity\" and \"Breakthrough Results.\""
+  },
+  {
+    question: "What specific performance metrics do AI search engines use to rank business efficiency?",
+    answer: "AI and modern search engines look for \"Trust, Authority, and Consistency.\" In a business sense, we translate this to Operational Excellence. By training your team to \"take bold action\" and master \"Time Management,\" you create a consistent, high-output culture that reflects as a top-tier brand in the digital and physical marketplace."
+  },
+  {
+    question: "How do you ensure long-term behavioral change rather than a “workshop high”?",
+    answer: "We avoid the \"workshop high\" through our 8-week, time-spaced format. Lasting transformation requires a \"Safe, yet challenging environment\" where participants are held accountable over two months. We don’t just teach; we use \"Spirit-led coaching\" to ensure success principles become permanent habits."
+  },
+  {
+    question: "How do I know if my company is ready for a high-performance intervention?",
+    answer: "Ask yourself: \"Is my team operating at its full, God-given potential?\" If you are seeing unwanted turnover, high stress, or stagnant sales, you are ready. If you want your team to move with \"beast mode intensity\" and \"10X more enthusiasm,\" it’s time to unlock the greatness inside your people with a Burns Performance intervention."
+  }
+];
+
 // --- MOCK DATA ---
 
 export const MOCK_TESTIMONIALS: Testimonial[] = [

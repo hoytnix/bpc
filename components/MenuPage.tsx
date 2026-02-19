@@ -14,6 +14,7 @@ const MenuPage: React.FC<MenuPageProps> = ({ onClose }) => {
     { path: '/contact', label: 'Contact Us' },
     { path: '/testimonials', label: 'Client Success' },
     { path: '/media', label: 'Media Library' },
+    { path: '/faq', label: 'Common Questions' },
   ];
 
   const handleNavigate = (path: string) => {

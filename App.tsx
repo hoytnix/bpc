@@ -9,6 +9,7 @@ import TestimonialsPage from './components/TestimonialsPage';
 import TestimonialDetail from './components/TestimonialDetail';
 import MediaPage from './components/MediaPage';
 import MediaDetail from './components/MediaDetail';
+import FAQPage from './components/FAQPage';
 
 const App: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
@@ -41,6 +42,7 @@ const App: React.FC = () => {
           <Route path="/testimonials/:id" element={<TestimonialDetail />} />
           <Route path="/media" element={<MediaPage />} />
           <Route path="/media/:id" element={<MediaDetail />} />
+          <Route path="/faq" element={<FAQPage />} />
         </Routes>
       </main>
       
