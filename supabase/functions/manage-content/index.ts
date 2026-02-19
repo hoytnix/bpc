@@ -50,6 +50,15 @@ serve(async (req) => {
       )
     }
 
+    // Strict Admin Check: Only Tommy's email is allowed
+    const ADMIN_EMAIL = 'burnsperformanceconsulting@gmail.com'
+    if (user.email !== ADMIN_EMAIL) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: You do not have admin privileges' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // 2. Parse JSON Body
     const { action, table, payload, id } = await req.json()
 
