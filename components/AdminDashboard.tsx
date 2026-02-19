@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase, supabaseUrl } from '../lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -101,28 +101,26 @@ const AdminDashboard: React.FC = () => {
 
   const callEdgeFunction = async (action: 'create' | 'update' | 'delete', payload: any = {}, id?: string) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/manage-content`, {
-      method: 'POST',
+    
+    const { data, error } = await supabase.functions.invoke('manage-content', {
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${session?.access_token}`,
+        'apikey': supabaseAnonKey,
       },
-      body: JSON.stringify({
+      body: {
         action,
         table: activeTab,
         payload,
         id
-      }),
+      },
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Failed to execute action');
+    if (error) {
+      console.error('Edge Function Error:', error);
+      throw new Error(error.message || 'Failed to execute action');
     }
 
-    return response.json();
+    return data;
   };
 
   const handleSave = async (e: React.FormEvent) => {
