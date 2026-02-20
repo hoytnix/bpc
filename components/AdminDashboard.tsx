@@ -79,9 +79,11 @@ const AdminDashboard: React.FC = () => {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('Error fetching data:', error);
+      console.error(`[Admin] Error fetching ${activeTab}:`, error);
+      setError(`Failed to load ${activeTab}: ${error.message}. Check if the table exists and RLS policies allow reading.`);
     } else {
       setItems(data || []);
+      setError(null);
     }
     setLoading(false);
   };
@@ -100,58 +102,96 @@ const AdminDashboard: React.FC = () => {
   };
 
   const callEdgeFunction = async (action: 'create' | 'update' | 'delete', payload: any = {}, id?: string) => {
+    // Calling getUser() forces a server-side check of the token, ensuring it's valid and refreshing it if needed.
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('[Edge Function] User validation failed:', userError);
+      throw new Error('Authentication session expired or invalid. Please log out and log back in.');
+    }
+
+    // Get the session to access the access_token
     const { data: { session } } = await supabase.auth.getSession();
     
-    if (!session) {
-      console.error('[Edge Function] No session found');
-      throw new Error('Authentication session expired. Please log in again.');
+    if (session) {
+      try {
+        const payload = JSON.parse(atob(session.access_token.split('.')[1]));
+        const exp = new Date(payload.exp * 1000);
+        console.log(`[Edge Function] Token Expiry: ${exp.toLocaleString()}`, {
+          isExpired: exp < new Date(),
+          role: payload.role
+        });
+      } catch (e) {
+        console.error('[Edge Function] Could not parse token payload', e);
+      }
     }
 
     console.log(`[Edge Function] Calling ${action} on ${activeTab}...`, { 
       payload, 
       id,
-      hasToken: !!session.access_token 
+      userId: user.id
     });
 
-    const { data, error } = await supabase.functions.invoke('manage-content', {
-      headers: {
-        'Authorization': `Bearer ${session?.access_token}`,
-        'apikey': supabaseAnonKey,
-      },
-      body: {
-        action,
-        table: activeTab,
-        payload,
-        id
-      },
-    });
+    let response;
+    try {
+      response = await fetch(`${supabaseUrl}/functions/v1/manage-content`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Authorization': `Bearer ${session?.access_token}`,
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          action,
+          table: activeTab,
+          payload,
+          id
+        }),
+      });
+    } catch (fetchErr: any) {
+      console.group('--- Network Error Calling Edge Function ---');
+      console.error('Fetch Error:', fetchErr);
+      console.error('Target URL:', `${supabaseUrl}/functions/v1/manage-content`);
+      console.groupEnd();
 
-    if (error) {
-      console.group('--- Edge Function Invocation Failed ---');
-      console.error('Error Object:', error);
-      console.error('Action:', action);
-      console.error('Table:', activeTab);
+      let detailedMsg = `Network Error: Could not reach the management service. `;
+      if (fetchErr.message === 'Failed to fetch') {
+        detailedMsg += "This usually means a CORS issue, an ad-blocker interference, or the Edge Function is not deployed/active. Check your browser console for 'Access-Control-Allow-Origin' errors.";
+      } else {
+        detailedMsg += fetchErr.message;
+      }
+      throw new Error(detailedMsg);
+    }
+
+    if (!response.ok) {
+      const bodyText = await response.text();
+      let errorMessage = `Function Error: ${response.status}`;
       
-      let errorMessage = `Function Error: ${error.message}`;
-      
-      // Try to extract more details if it's an HTTP error
-      if (error instanceof Error && 'context' in error) {
-        const response = (error as any).context;
-        if (response instanceof Response) {
-          try {
-            const body = await response.clone().text();
-            console.error('Raw Response Body:', body);
-            errorMessage += ` | Body: ${body}`;
-          } catch (e) {
-            console.error('Could not read response body', e);
-          }
+      try {
+        const errorData = JSON.parse(bodyText);
+        console.group('--- Edge Function Error Details ---');
+        console.error('Error Data:', errorData);
+        console.groupEnd();
+
+        // Handle different error formats (Supabase Gateway vs Custom)
+        errorMessage = errorData.error || errorData.message || errorData.msg || errorMessage;
+        
+        if (errorData.details) errorMessage += ` (${errorData.details})`;
+        if (errorData.hint) errorMessage += ` Hint: ${errorData.hint}`;
+        if (errorData.requestId) errorMessage += ` [Ref: ${errorData.requestId}]`;
+      } catch (e) {
+        console.error('Raw Response Body:', bodyText);
+        if (bodyText.includes('Invalid JWT') || bodyText.includes('Missing authorization header')) {
+          errorMessage = 'Your login session has expired or is invalid. Please log out and log back in.';
+        } else {
+          errorMessage += ` | Body: ${bodyText}`;
         }
       }
-
-      console.groupEnd();
+      
       throw new Error(errorMessage);
     }
 
+    const data = await response.json();
     console.log(`[Edge Function] ${action} success:`, data);
     return data;
   };
@@ -168,9 +208,11 @@ const AdminDashboard: React.FC = () => {
       setIsModalOpen(false);
       setEditingItem(null);
       setFormData({});
+      setError(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message);
+      console.error('[Admin] Save error:', err);
+      setError(err.message || 'An unexpected error occurred while saving.');
     } finally {
       setLoading(false);
     }
@@ -181,9 +223,11 @@ const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       await callEdgeFunction('delete', {}, id);
+      setError(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message);
+      console.error('[Admin] Delete error:', err);
+      setError(err.message || 'An unexpected error occurred while deleting.');
     } finally {
       setLoading(false);
     }
@@ -283,6 +327,15 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="lg:ml-64 p-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500 animate-in fade-in slide-in-from-top-2">
+            <X size={20} className="shrink-0" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto hover:text-white">
+              <X size={16} />
+            </button>
+          </div>
+        )}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-4xl font-serif font-bold text-white capitalize">{activeTab.replace('_', ' ')}</h1>

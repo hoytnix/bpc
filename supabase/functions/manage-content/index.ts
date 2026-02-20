@@ -3,57 +3,56 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
   const requestId = Math.random().toString(36).substring(7);
   console.log(`[${requestId}] Request received: ${req.method}`);
-  console.log(`[${requestId}] Headers:`, JSON.stringify(Object.fromEntries(req.headers.entries())));
-
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 1. Auth Verification
-    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
-    if (!authHeader) {
-      console.error(`[${requestId}] Missing Authorization header`);
-      return new Response(
-        JSON.stringify({ error: 'BPC_FUNCTION_ERROR: Missing Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const supabaseAnonKey = Deno.env.get('PUBLISHABLE_KEY')
+    const supabaseServiceRoleKey = Deno.env.get('SECRET_KEY')
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
       console.error(`[${requestId}] Missing environment variables`);
       return new Response(
         JSON.stringify({ 
           error: 'Edge Function configuration error', 
-          details: 'Missing SUPABASE_URL, SUPABASE_ANON_KEY, or SUPABASE_SERVICE_ROLE_KEY in Supabase project settings.' 
+          details: 'Missing SUPABASE_URL, SUPABASE_ANON_KEY/PUBLISHABLE_KEY, or SUPABASE_SERVICE_ROLE_KEY/SECRET_KEY in Supabase project settings.' 
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Initialize Supabase client using URL and Anon Key
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // 1. Auth Verification - Use Admin client to verify the JWT directly
     const token = authHeader.replace('Bearer ', '')
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      }
+    })
     
-    // Retrieve the user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    // verify the JWT and get the user
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
-      console.error(`[${requestId}] Auth error:`, authError?.message);
+      console.error(`[${requestId}] Auth error:`, authError?.message || 'No user found');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: authError?.message }),
+        JSON.stringify({ 
+          error: 'Authentication Failed', 
+          details: authError?.message || 'The provided token is invalid or expired.',
+          token_preview: `${token.substring(0, 10)}...${token.substring(token.length - 10)}`,
+          requestId
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -73,9 +72,7 @@ serve(async (req) => {
       )
     }
 
-    // 3. Initialize Admin Client
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
-
+    // 3. Execute corresponding query using the already initialized Admin Client
     let result
     let dbError
 
@@ -130,8 +127,14 @@ serve(async (req) => {
     }
 
     if (dbError) {
+      console.error(`[${requestId}] Database error:`, dbError);
       return new Response(
-        JSON.stringify({ error: dbError.message, code: dbError.code }),
+        JSON.stringify({ 
+          error: `Database ${action} failed on ${table}.`, 
+          details: dbError.message, 
+          code: dbError.code,
+          hint: 'Check if the payload matches the table schema and RLS policies allow this action.'
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -142,8 +145,13 @@ serve(async (req) => {
     )
 
   } catch (err: any) {
+    console.error(`[${requestId}] Unexpected error:`, err);
     return new Response(
-      JSON.stringify({ error: err.message || 'Internal Server Error' }),
+      JSON.stringify({ 
+        error: 'The management service encountered an unexpected error.', 
+        details: err.message || 'Unknown error',
+        requestId 
+      }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
