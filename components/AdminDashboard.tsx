@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
-import { 
+import { supabase, supabaseUrl } from '../lib/supabase';
+import {
   LayoutDashboard, 
   MessageSquare, 
   PlayCircle, 
@@ -134,12 +134,12 @@ const AdminDashboard: React.FC = () => {
 
     let response;
     try {
-      response = await fetch(`${supabaseUrl}/functions/v1/manage-content`, {
+      response = await fetch(`https://dmxsysktnlhpgebqjzgk.supabase.co/functions/v1/manage-content`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Authorization': `Bearer ${session?.access_token}`,
-          'apikey': supabaseAnonKey,
+          'apikey': 'sb_publishable_aK2eimbeZ1uj9uURrPiasA_2LhFOrE-',
         },
         body: JSON.stringify({
           action,
