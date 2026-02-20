@@ -8,6 +8,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  const authHeader = req.headers.get('X-Authorization') || req.headers.get('Authorization');
+
   const requestId = Math.random().toString(36).substring(7);
   console.log(`[${requestId}] Request received: ${req.method}`);
   
