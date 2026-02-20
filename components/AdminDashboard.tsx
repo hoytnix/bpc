@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, supabaseUrl } from '../lib/supabase';
 import {
-  LayoutDashboard, 
-  MessageSquare, 
-  PlayCircle, 
-  HelpCircle, 
-  Plus, 
-  Edit2, 
-  Trash2, 
   LogOut, 
   Save, 
   X,
   Loader2,
-  Lock
+  Lock,
+  Plus,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 type Tab = 'testimonials' | 'media_items' | 'faqs';
@@ -50,10 +46,13 @@ const AdminDashboard: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    // Determine ordering based on table schema
+    const orderBy = activeTab === 'faqs' ? 'display_order' : 'created_at';
+    
     const { data, error } = await supabase
       .from(activeTab)
       .select('*')
-      .order('created_at', { ascending: false });
+      .order(orderBy, { ascending: activeTab === 'faqs' });
     
     if (error) {
       setError(`Failed to load ${activeTab}: ${error.message}`);
@@ -189,13 +188,17 @@ const AdminDashboard: React.FC = () => {
           <h2 className="text-xl font-serif font-bold text-red-600">BPC Admin</h2>
         </div>
         <nav className="flex-grow p-4 space-y-2">
-          {['testimonials', 'media_items', 'faqs'].map((tab) => (
+          {[
+            { id: 'testimonials', label: 'Testimonials' },
+            { id: 'media_items', label: 'Media Library' },
+            { id: 'faqs', label: 'FAQs' }
+          ].map((tab) => (
             <button 
-              key={tab}
-              onClick={() => setActiveTab(tab as Tab)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === tab ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as Tab)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === tab.id ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}
             >
-              <span className="capitalize">{tab.replace('_', ' ')}</span>
+              <span>{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -228,7 +231,7 @@ const AdminDashboard: React.FC = () => {
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
                 <th className="px-6 py-4 text-sm font-semibold text-slate-300">Content</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-300">Details</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-300">Primary Info</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-300 text-right">Actions</th>
               </tr>
             </thead>
@@ -244,8 +247,8 @@ const AdminDashboard: React.FC = () => {
                     <td className="px-6 py-4 text-slate-400 truncate max-w-xs">{item.role || item.type || item.answer}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openModal(item)} className="p-2 text-slate-400 hover:text-yellow-400"><Edit2 size={18} /></button>
-                        <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={18} /></button>
+                        <button onClick={() => openModal(item)} className="p-2 text-slate-400 hover:text-yellow-400 transition-colors"><Edit2 size={18} /></button>
+                        <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                       </div>
                     </td>
                   </tr>
@@ -261,33 +264,50 @@ const AdminDashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-              <h2 className="text-2xl font-serif font-bold text-white">{editingItem ? 'Edit' : 'Add'} {activeTab}</h2>
+              <h2 className="text-2xl font-serif font-bold text-white">{editingItem ? 'Edit' : 'Add'} {activeTab.replace('_', ' ')}</h2>
               <button onClick={() => setIsModalOpen(false)}><X size={24} className="text-slate-400 hover:text-white" /></button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
               {activeTab === 'testimonials' && (
                 <>
-                  <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Name" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} required />
-                  <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Role" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} required />
-                  <textarea className="w-full bg-slate-800 p-3 rounded-lg text-white h-32" placeholder="Testimonial" value={formData.fullText || ''} onChange={e => setFormData({...formData, fullText: e.target.value})} required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Name" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                    <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Role" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} required />
+                  </div>
+                  <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Excerpt (Short summary)" value={formData.excerpt || ''} onChange={e => setFormData({...formData, excerpt: e.target.value})} required />
+                  <textarea className="w-full bg-slate-800 p-3 rounded-lg text-white h-32" placeholder="Full Testimonial Text" value={formData.full_text || ''} onChange={e => setFormData({...formData, full_text: e.target.value})} required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="number" min="1" max="5" className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Rating (1-5)" value={formData.rating || ''} onChange={e => setFormData({...formData, rating: parseInt(e.target.value)})} required />
+                    <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Date (e.g. Jan 15, 2026)" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} required />
+                  </div>
                 </>
               )}
               {activeTab === 'media_items' && (
                 <>
                   <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Title" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required />
-                  <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Type (e.g. Video)" value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})} required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <select className="w-full bg-slate-800 p-3 rounded-lg text-white" value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})} required>
+                        <option value="" disabled>Select Type</option>
+                        <option value="video">Video</option>
+                        <option value="image">Image / Article</option>
+                    </select>
+                    <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Duration (e.g. 14:20)" value={formData.duration || ''} onChange={e => setFormData({...formData, duration: e.target.value})} required />
+                  </div>
+                  <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Thumbnail URL (Unsplash/Imgur)" value={formData.thumbnail || ''} onChange={e => setFormData({...formData, thumbnail: e.target.value})} required />
+                  <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Views (e.g. 1.2k)" value={formData.views || ''} onChange={e => setFormData({...formData, views: e.target.value})} />
                 </>
               )}
               {activeTab === 'faqs' && (
                 <>
                   <input className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Question" value={formData.question || ''} onChange={e => setFormData({...formData, question: e.target.value})} required />
                   <textarea className="w-full bg-slate-800 p-3 rounded-lg text-white h-32" placeholder="Answer" value={formData.answer || ''} onChange={e => setFormData({...formData, answer: e.target.value})} required />
+                  <input type="number" className="w-full bg-slate-800 p-3 rounded-lg text-white" placeholder="Display Order (Lower numbers show first)" value={formData.display_order || ''} onChange={e => setFormData({...formData, display_order: parseInt(e.target.value)})} />
                 </>
               )}
               <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-800 py-3 rounded-xl">Cancel</button>
-                <button type="submit" disabled={loading} className="flex-1 bg-red-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-                  {loading ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Save</>}
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-800 py-3 rounded-xl transition-colors hover:bg-slate-700">Cancel</button>
+                <button type="submit" disabled={loading} className="flex-1 bg-red-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:bg-red-700 disabled:opacity-50">
+                  {loading ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Save Changes</>}
                 </button>
               </div>
             </form>
